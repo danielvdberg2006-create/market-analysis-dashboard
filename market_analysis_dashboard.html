@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Market Intelligence Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-base: #070B14;
+  --bg-panel: #0D1321;
+  --bg-card: #111827;
+  --bg-hover: #1a2236;
+  --border: #1e2d45;
+  --border-light: #243044;
+  --accent-blue: #3B82F6;
+  --accent-blue-dim: #1d4ed8;
+  --gain: #10B981;
+  --gain-dim: #065f46;
+  --loss: #EF4444;
+  --loss-dim: #7f1d1d;
+  --neutral: #F59E0B;
+  --neutral-dim: #78350f;
+  --strong-buy: #10B981;
+  --buy: #34D399;
+  --hold: #F59E0B;
+  --reduce: #F97316;
+  --sell: #EF4444;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-dim: #475569;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 13px;
+  min-height: 100vh;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ALERTS BAR */
+.alerts-bar {
+  background: linear-gradient(90deg, #0f1923, #0d1b2a);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  overflow-x: auto;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.alert-label { color: var(--accent-blue); font-weight: 600; font-size: 11px; letter-spacing: 0.5px; }
+.alert-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); }
+.alert-dot { width: 6px; height: 6px; border-radius: 50%; }
+.alert-dot.urgent { background: var(--loss); animation: pulse 2s infinite; }
+.alert-dot.info { background: var(--accent-blue); }
+.alert-dot.positive { background: var(--gain); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* HEADER */
+header {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.header-left h1 { font-size: 16px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.3px; }
+.header-left span { font-size: 11px; color: var(--text-secondary); display: block; margin-top: 2px; }
+.header-right { display: flex; align-items: center; gap: 20px; }
+.portfolio-total { text-align: right; }
+.portfolio-total .value { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+.portfolio-total .change { font-size: 12px; color: var(--gain); font-weight: 500; }
+.portfolio-total .label { font-size: 10px; color: var(--text-secondary); }
+.last-updated { font-size: 10px; color: var(--text-dim); text-align: right; }
+.refresh-btn {
+  background: var(--accent-blue-dim);
+  border: 1px solid var(--accent-blue);
+  color: var(--text-primary);
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.2s;
+}
+.refresh-btn:hover { background: var(--accent-blue); }
+
+/* CURRENCY BAR */
+.currency-bar {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 20px;
+  display: flex;
+  gap: 30px;
+  align-items: center;
+}
+.currency-item { display: flex; align-items: center; gap: 8px; }
+.currency-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.currency-value { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.currency-change { font-size: 11px; }
+
+/* MAIN LAYOUT */
+.main {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 0;
+  min-height: calc(100vh - 140px);
+}
+
+/* SIDEBAR */
+.sidebar {
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  max-height: calc(100vh - 140px);
+  position: sticky;
+  top: 140px;
+}
+
+/* CONTENT AREA */
+.content {
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* SECTION HEADERS */
+.section-header {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.section-title { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; }
+.section-badge { font-size: 10px; background: var(--bg-card); color: var(--text-secondary); padding: 2px 7px; border-radius: 10px; border: 1px solid var(--border); }
+
+/* PORTFOLIO TOTALS */
+.portfolio-totals {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.total-block { background: var(--bg-card); border-radius: 6px; padding: 10px; }
+.total-block .tb-label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.total-block .tb-value { font-size: 15px; font-weight: 700; }
+.total-block .tb-sub { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+
+/* HOLDINGS */
+.holding-item {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.holding-item:hover { background: var(--bg-hover); }
+.holding-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+.holding-name { font-weight: 600; font-size: 13px; color: var(--text-primary); }
+.holding-ticker { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+.holding-price { text-align: right; }
+.holding-price .price { font-size: 14px; font-weight: 700; }
+.holding-price .pchange { font-size: 11px; font-weight: 500; }
+.holding-meta { display: flex; justify-content: space-between; align-items: center; }
+.holding-meta-left { display: flex; gap: 12px; }
+.meta-item { font-size: 10px; color: var(--text-secondary); }
+.meta-item span { color: var(--text-primary); font-weight: 500; }
+.signal-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+}
+.sb-strong-buy { background: rgba(16,185,129,0.15); color: var(--strong-buy); border: 1px solid rgba(16,185,129,0.3); }
+.sb-buy { background: rgba(52,211,153,0.1); color: var(--buy); border: 1px solid rgba(52,211,153,0.25); }
+.sb-hold { background: rgba(245,158,11,0.1); color: var(--hold); border: 1px solid rgba(245,158,11,0.25); }
+.sb-reduce { background: rgba(249,115,22,0.1); color: var(--reduce); border: 1px solid rgba(249,115,22,0.25); }
+.sb-sell { background: rgba(239,68,68,0.1); color: var(--sell); border: 1px solid rgba(239,68,68,0.25); }
+
+/* TECHNICALS MINI */
+.tech-mini { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.tech-tag {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.tt-green { background: rgba(16,185,129,0.1); color: var(--gain); }
+.tt-red { background: rgba(239,68,68,0.1); color: var(--loss); }
+.tt-yellow { background: rgba(245,158,11,0.1); color: var(--neutral); }
+.tt-blue { background: rgba(59,130,246,0.1); color: var(--accent-blue); }
+
+/* CARDS */
+.card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; }
+.card-body { padding: 14px 16px; }
+
+/* VALUATION TABLE */
+.val-table { width: 100%; border-collapse: collapse; }
+.val-table th { font-size: 10px; color: var(--text-dim); font-weight: 500; padding: 0 0 8px; text-align: left; text-transform: uppercase; letter-spacing: 0.4px; }
+.val-table td { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; vertical-align: middle; }
+.val-table tr:last-child td { border-bottom: none; }
+.val-table .ticker-cell { font-weight: 600; color: var(--accent-blue); }
+.val-table .price-cell { color: var(--text-primary); font-weight: 500; }
+.val-table .target-cell { color: var(--text-secondary); }
+.updown { font-size: 11px; font-weight: 600; }
+.updown.up { color: var(--gain); }
+.updown.down { color: var(--loss); }
+
+/* SECTOR HEATMAP */
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.heat-cell {
+  padding: 12px 10px;
+  border-radius: 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.heat-cell:hover { opacity: 0.85; }
+.heat-cell .hc-sector { font-size: 10px; font-weight: 600; margin-bottom: 4px; }
+.heat-cell .hc-change { font-size: 13px; font-weight: 700; }
+.heat-cell .hc-signal { font-size: 9px; margin-top: 3px; opacity: 0.85; }
+.heat-strong-buy { background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.35); color: var(--gain); }
+.heat-buy { background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.25); color: #34D399; }
+.heat-hold { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25); color: var(--neutral); }
+.heat-reduce { background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2); color: #F97316; }
+.heat-sell { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--loss); }
+
+/* WATCHLIST */
+.watchlist-table { width: 100%; border-collapse: collapse; }
+.watchlist-table th { font-size: 10px; color: var(--text-dim); font-weight: 500; padding: 0 0 8px; text-align: left; text-transform: uppercase; letter-spacing: 0.4px; }
+.watchlist-table td { padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; vertical-align: middle; }
+.watchlist-table tr:last-child td { border-bottom: none; }
+.wl-name { font-weight: 600; color: var(--text-primary); }
+.wl-ticker { font-size: 10px; color: var(--text-dim); }
+.rsi-bar { width: 80px; height: 4px; background: var(--border); border-radius: 2px; display: inline-block; position: relative; margin-top: 2px; }
+.rsi-fill { height: 100%; border-radius: 2px; position: absolute; left: 0; }
+.rsi-label { font-size: 11px; font-weight: 600; }
+
+/* NEWS */
+.news-item {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.news-item:last-child { border-bottom: none; }
+.news-item:hover .news-headline { color: var(--accent-blue); }
+.news-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+.news-headline { font-size: 12px; font-weight: 500; color: var(--text-primary); line-height: 1.4; transition: color 0.15s; }
+.news-time { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+.news-meta { display: flex; gap: 8px; align-items: center; }
+.news-tag { font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: 600; }
+.nt-msft { background: rgba(59,130,246,0.15); color: #60A5FA; }
+.nt-pltr { background: rgba(16,185,129,0.15); color: #34D399; }
+.nt-tsm { background: rgba(245,158,11,0.15); color: #FCD34D; }
+.nt-ionq { background: rgba(239,68,68,0.15); color: #FCA5A5; }
+.nt-macro { background: rgba(148,163,184,0.15); color: #94A3B8; }
+.nt-sector { background: rgba(167,139,250,0.15); color: #A78BFA; }
+
+/* EVENTS CALENDAR */
+.event-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.event-item:last-child { border-bottom: none; }
+.event-days { min-width: 36px; text-align: center; }
+.event-days .days-num { font-size: 16px; font-weight: 700; }
+.event-days .days-label { font-size: 9px; color: var(--text-dim); }
+.event-info .ev-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+.event-info .ev-date { font-size: 10px; color: var(--text-secondary); margin-top: 1px; }
+.event-type { font-size: 9px; padding: 2px 7px; border-radius: 10px; font-weight: 600; margin-left: auto; }
+.et-earnings { background: rgba(59,130,246,0.15); color: #60A5FA; }
+.et-macro { background: rgba(148,163,184,0.15); color: #94A3B8; }
+.et-fed { background: rgba(245,158,11,0.15); color: var(--neutral); }
+
+/* TECHNICAL DETAIL */
+.tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tech-item { background: var(--bg-card); border-radius: 6px; padding: 10px 12px; }
+.tech-item .ti-label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.tech-item .ti-value { font-size: 14px; font-weight: 700; }
+.tech-item .ti-signal { font-size: 10px; margin-top: 2px; }
+.tech-item .ti-note { font-size: 10px; color: var(--text-secondary); margin-top: 3px; line-height: 1.3; }
+
+/* ANALYST NOTE */
+.analyst-note {
+  background: linear-gradient(135deg, rgba(59,130,246,0.07), rgba(16,185,129,0.05));
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.analyst-note .an-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.analyst-note .an-icon { width: 28px; height: 28px; background: var(--accent-blue-dim); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.analyst-note .an-title { font-size: 12px; font-weight: 600; color: var(--accent-blue); }
+.analyst-note .an-sub { font-size: 10px; color: var(--text-secondary); }
+.analyst-note .an-body { font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
+.analyst-note .an-body strong { color: var(--text-primary); }
+
+/* ALLOCATION CHART */
+.alloc-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 12px; }
+.alloc-bar-wrap { text-align: center; }
+.alloc-bar-outer { height: 60px; background: var(--bg-card); border-radius: 4px; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
+.alloc-bar-inner { border-radius: 3px; transition: height 0.5s; }
+.alloc-label { font-size: 9px; color: var(--text-dim); margin-top: 4px; font-weight: 500; }
+.alloc-pct { font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 2px; }
+
+/* TABS */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 16px; }
+.tab {
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+}
+.tab.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+.tab:hover:not(.active) { color: var(--text-primary); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* LOADING */
+.loading { display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 12px; }
+.spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.gain { color: var(--gain); }
+.loss { color: var(--loss); }
+.neutral-text { color: var(--neutral); }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+@media (max-width: 900px) {
+  .main { grid-template-columns: 1fr; }
+  .sidebar { max-height: none; position: relative; top: 0; }
+  .heatmap-grid { grid-template-columns: repeat(3, 1fr); }
+  .alloc-grid { grid-template-columns: repeat(4, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- ALERTS BAR -->
+<div class="alerts-bar">
+  <span class="alert-label">⚡ LIVE</span>
+  <div class="alert-item"><div class="alert-dot urgent"></div><span>MSFT earnings today after close — watch Azure growth guidance</span></div>
+  <div class="alert-item"><div class="alert-dot info"></div><span>PLTR Q3 earnings next week — up 48% YTD, approaching overbought</span></div>
+  <div class="alert-item"><div class="alert-dot positive"></div><span>TSMC +0.7% — semiconductor sector rallying on Anthropic IPO filing</span></div>
+  <div class="alert-item"><div class="alert-dot urgent"></div><span>IONQ -47.35% — Q3 earnings upcoming, potential recovery catalyst</span></div>
+  <div class="alert-item"><div class="alert-dot info"></div><span>USD/ZAR: Loading... — monitor rand impact on USD portfolio value</span></div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <h1>Market Intelligence Dashboard</h1>
+    <span>Personal Portfolio Analytics · EasyEquities · ZAR + USD</span>
+  </div>
+  <div class="header-right">
+    <div class="portfolio-total">
+      <div class="label">Total Portfolio</div>
+      <div class="value" id="total-portfolio">R5,934.02</div>
+      <div class="change">+R540.01 · +10.01% all time</div>
+    </div>
+    <div>
+      <div class="last-updated" id="last-updated">Updating...</div>
+      <button class="refresh-btn" onclick="refreshAll()">↻ Refresh</button>
+    </div>
+  </div>
+</header>
+
+<!-- CURRENCY BAR -->
+<div class="currency-bar">
+  <div class="currency-item">
+    <span class="currency-label">USD/ZAR</span>
+    <span class="currency-value" id="usdzar-rate">Loading...</span>
+    <span class="currency-change" id="usdzar-change"></span>
+  </div>
+  <div class="currency-item">
+    <span class="currency-label">SA Portfolio</span>
+    <span class="currency-value gain">R3,841.72</span>
+    <span class="currency-change gain">+10.03%</span>
+  </div>
+  <div class="currency-item">
+    <span class="currency-label">USD Portfolio</span>
+    <span class="currency-value gain" id="usd-total">$125.74</span>
+    <span class="currency-change gain">+9.97%</span>
+  </div>
+  <div class="currency-item">
+    <span class="currency-label">USD in ZAR</span>
+    <span class="currency-value" id="usd-in-zar">Calculating...</span>
+  </div>
+  <div class="currency-item" style="margin-left:auto;">
+    <span class="currency-label">S&P 500</span>
+    <span class="currency-value" id="spy-price">Loading...</span>
+    <span class="currency-change" id="spy-change"></span>
+  </div>
+  <div class="currency-item">
+    <span class="currency-label">Nasdaq</span>
+    <span class="currency-value" id="qqq-price">Loading...</span>
+    <span class="currency-change" id="qqq-change"></span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- SA PORTFOLIO -->
+    <div class="section-header">
+      <span class="section-title">🇿🇦 SA Portfolio</span>
+      <span class="section-badge">ZAR</span>
+    </div>
+    <div class="portfolio-totals">
+      <div class="total-block">
+        <div class="tb-label">Current Value</div>
+        <div class="tb-value gain">R3,841.72</div>
+        <div class="tb-sub">+R350.48 profit</div>
+      </div>
+      <div class="total-block">
+        <div class="tb-label">Return</div>
+        <div class="tb-value gain">+10.03%</div>
+        <div class="tb-sub">All time</div>
+      </div>
+    </div>
+
+    <!-- SA Holdings -->
+    <div class="holding-item" onclick="showDetail('SP500')">
+      <div class="holding-top">
+        <div><div class="holding-name">Satrix S&P 500</div><div class="holding-ticker">STXSPY · ETF</div></div>
+        <div class="holding-price">
+          <div class="price" id="sp500-price">R137.21</div>
+          <div class="pchange gain" id="sp500-day">Loading...</div>
+        </div>
+      </div>
+      <div class="holding-meta">
+        <div class="holding-meta-left">
+          <div class="meta-item">Purchased <span>R1,992.00</span></div>
+          <div class="meta-item">Now <span class="gain">R2,265.60</span></div>
+          <div class="meta-item"><span class="gain">+13.73%</span></div>
+        </div>
+        <div class="signal-badge sb-hold">HOLD</div>
+      </div>
+      <div class="tech-mini">
+        <span class="tech-tag tt-green">Above 200MA</span>
+        <span class="tech-tag tt-green">Bullish trend</span>
+        <span class="tech-tag tt-yellow">RSI Neutral</span>
+      </div>
+    </div>
+
+    <div class="holding-item" onclick="showDetail('PPE')">
+      <div class="holding-top">
+        <div><div class="holding-name">Purple Group</div><div class="holding-ticker">PPE · JSE</div></div>
+        <div class="holding-price">
+          <div class="price" id="ppe-price">R1.79</div>
+          <div class="pchange gain" id="ppe-day">Loading...</div>
+        </div>
+      </div>
+      <div class="holding-meta">
+        <div class="holding-meta-left">
+          <div class="meta-item">Purchased <span>R1,000.87</span></div>
+          <div class="meta-item">Now <span class="gain">R1,078.50</span></div>
+          <div class="meta-item"><span class="gain">+7.76%</span></div>
+        </div>
+        <div class="signal-badge sb-buy">BUY</div>
+      </div>
+      <div class="tech-mini">
+        <span class="tech-tag tt-green">Revenue +8.8%</span>
+        <span class="tech-tag tt-green">Costs +0.5%</span>
+        <span class="tech-tag tt-blue">PH Expansion</span>
+      </div>
+    </div>
+
+    <div class="holding-item" onclick="showDetail('NDX')">
+      <div class="holding-top">
+        <div><div class="holding-name">Satrix Nasdaq 100</div><div class="holding-ticker">STXNDQ · ETF</div></div>
+        <div class="holding-price">
+          <div class="price" id="ndx-price">R280.37</div>
+          <div class="pchange loss" id="ndx-day">Loading...</div>
+        </div>
+      </div>
+      <div class="holding-meta">
+        <div class="holding-meta-left">
+          <div class="meta-item">Purchased <span>R498.09</span></div>
+          <div class="meta-item">Now <span class="loss">R497.34</span></div>
+          <div class="meta-item"><span class="loss">-0.15%</span></div>
+        </div>
+        <div class="signal-badge sb-hold">HOLD</div>
+      </div>
+      <div class="tech-mini">
+        <span class="tech-tag tt-yellow">Breakeven</span>
+        <span class="tech-tag tt-blue">AI catalyst ahead</span>
+      </div>
+    </div>
+
+    <!-- USD PORTFOLIO -->
+    <div class="section-header" style="margin-top:8px;">
+      <span class="section-title">💵 USD Portfolio</span>
+      <span class="section-badge">USD</span>
+    </div>
+    <div class="portfolio-totals">
+      <div class="total-block">
+        <div class="tb-label">Current Value</div>
+        <div class="tb-value gain">$125.74</div>
+        <div class="tb-sub">+$11.39 profit</div>
+      </div>
+      <div class="total-block">
+        <div class="tb-label">Return</div>
+        <div class="tb-value gain">+9.97%</div>
+        <div class="tb-sub">All time</div>
+      </div>
+    </div>
+
+    <div class="holding-item" onclick="showDetail('MSFT')">
+      <div class="holding-top">
+        <div><div class="holding-name">Microsoft</div><div class="holding-ticker">MSFT · NASDAQ</div></div>
+        <div class="holding-price">
+          <div class="price" id="msft-price">Loading...</div>
+          <div class="pchange" id="msft-day">...</div>
+        </div>
+      </div>
+      <div class="holding-meta">
+        <div class="holding-meta-left">
+          <div class="meta-item">Cost <span>$28.80</span></div>
+          <div class="meta-item">P&L <span class="gain">+34.13%</span></div>
+        </div>
+        <div class="signal-badge sb-strong-buy">STRONG BUY</div>
+      </div>
+      <div class="tech-mini">
+        <span class="tech-tag tt-green">Earnings TODAY</span>
+        <span class="tech-tag tt-green">Azure +43%</span>
+        <span class="tech-tag tt-blue">Target $603</span>
+      </div>
+    </div>
+
+    <div class="holding-item" onclick="showDetail('PLTR')">
+      <div class="holding-top">
+        <div><div class="holding-name">Palantir</div><div class="holding-ticker">PLTR · NYSE</div></div>
+        <div class="holding-price">
+          <div class="price" id="pltr-price">Loading...</div>
+          <div class="pchange" id="pltr-day">...</div>
+        </div>
+      </div>
+      <div class="holding-meta">
+        <div class="holding-meta-left">
+          <div class="meta-item">Cost <span>$30.29</span></div>
+          <div class="meta-item">P&L <span class="gain">+48.23%</span></div>
+        </div>
+        <div class="signal-badge sb-buy">BUY</div>
+      </div>
+      <div class="tech-mini">
+        <span class="tech-tag tt-yellow">RSI Elevated</span>
+        <span class="tech-tag tt-green">US Commercial +124%</span>
+        <span class="tech-tag tt-blue">Target $230-245</span>
+      </div>
+    </div>
+
+    <div class="holding-item" onclick="showDetail('TSM')">
+      <div class="holding-top">
+        <div><div class="holding-name">TSMC</div><div class="holding-ticker">TSM · NYSE</div></div>
+        <div class="holding-price">
+          <div class="price" id="tsm-price">Loading...</div>
+          <div class="pchange" id="tsm-day">...</div>
+        </div>
+      </div>
+      <div class="holding-meta">
+        <div class="holding-meta-left">
+          <div class="meta-item">Cost <span>$27.14</span></div>
+          <div class="meta-item">P&L <span class="gain">+0.7%</span></div>
+        </div>
+        <div class="signal-badge sb-strong-buy">STRONG BUY</div>
+      </div>
+      <div class="tech-mini">
+        <span class="tech-tag tt-yellow">RSI Neutral</span>
+        <span class="tech-tag tt-green">Rev +41% YoY</span>
+        <span class="tech-tag tt-blue">PEG 0.55</span>
+      </div>
+    </div>
+
+    <div class="holding-item" onclick="showDetail('IONQ')">
+      <div class="holding-top">
+        <div><div class="holding-name">IonQ</div><div class="holding-ticker">IONQ · NYSE</div></div>
+        <div class="holding-price">
+          <div class="price" id="ionq-price">Loading...</div>
+          <div class="pchange" id="ionq-day">...</div>
+        </div>
+      </div>
+      <div class="holding-meta">
+        <div class="holding-meta-left">
+          <div class="meta-item">Cost <span>$27.96</span></div>
+          <div class="meta-item">P&L <span class="loss">-47.35%</span></div>
+        </div>
+        <div class="signal-badge sb-hold">HOLD</div>
+      </div>
+      <div class="tech-mini">
+        <span class="tech-tag tt-red">Down 47%</span>
+        <span class="tech-tag tt-blue">Rev +287% YoY</span>
+        <span class="tech-tag tt-yellow">Analyst avg $63</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CONTENT AREA -->
+  <div class="content">
+
+    <!-- ANALYST NOTE -->
+    <div class="analyst-note">
+      <div class="an-header">
+        <div class="an-icon">📊</div>
+        <div>
+          <div class="an-title">Morning Market Brief — October 28, 2026</div>
+          <div class="an-sub">Senior Equity Analyst Assessment · Personal Portfolio</div>
+        </div>
+      </div>
+      <div class="an-body">
+        <strong>Key theme today:</strong> Microsoft reports earnings after close — this is the single most important event for your portfolio this week. Azure guidance of ~45% growth is the number to watch. Separately, <strong>Anthropic's IPO filing yesterday revived the AI trade</strong> — semiconductors rallied broadly with the iShares Semi ETF +3%, benefiting your TSMC position directly. <strong>Palantir continues its exceptional run at +48%</strong> with Q3 earnings next week as the next major catalyst. IonQ remains your only red position — Q3 earnings upcoming represent a potential inflection point. <strong>Your portfolio is well positioned</strong> for a strong close to Q4 2026.
+      </div>
+    </div>
+
+    <!-- TABS: VALUATION / TECHNICALS -->
+    <div class="card">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('val')">Valuation & Signals</div>
+        <div class="tab" onclick="switchTab('tech')">Technical Analysis</div>
+        <div class="tab" onclick="switchTab('alloc')">Allocation</div>
+      </div>
+
+      <div id="tab-val" class="tab-content active" style="padding:14px 16px;">
+        <table class="val-table">
+          <thead>
+            <tr>
+              <th>Holding</th>
+              <th>Current</th>
+              <th>Analyst Target</th>
+              <th>Upside</th>
+              <th>Signal</th>
+              <th>Reasoning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="ticker-cell">MSFT</div><div style="font-size:10px;color:var(--text-dim)">Microsoft</div></td>
+              <td class="price-cell" id="val-msft-price">$532.81</td>
+              <td class="target-cell">$603.43</td>
+              <td><span class="updown up">+13.3%</span></td>
+              <td><span class="signal-badge sb-strong-buy">STRONG BUY</span></td>
+              <td style="font-size:10px;color:var(--text-secondary);max-width:140px;">Earnings today. Azure ~45% growth. $678B backlog. 57 analysts Strong Buy.</td>
+            </tr>
+            <tr>
+              <td><div class="ticker-cell">PLTR</div><div style="font-size:10px;color:var(--text-dim)">Palantir</div></td>
+              <td class="price-cell" id="val-pltr-price">$198.74</td>
+              <td class="target-cell">$230-245</td>
+              <td><span class="updown up">+16-23%</span></td>
+              <td><span class="signal-badge sb-buy">BUY</span></td>
+              <td style="font-size:10px;color:var(--text-secondary);max-width:140px;">Goldman upgraded to Buy. US commercial +124%. Q3 earnings catalyst next week.</td>
+            </tr>
+            <tr>
+              <td><div class="ticker-cell">TSM</div><div style="font-size:10px;color:var(--text-dim)">TSMC</div></td>
+              <td class="price-cell" id="val-tsm-price">$437.16</td>
+              <td class="target-cell">$665</td>
+              <td><span class="updown up">+52%</span></td>
+              <td><span class="signal-badge sb-strong-buy">STRONG BUY</span></td>
+              <td style="font-size:10px;color:var(--text-secondary);max-width:140px;">6 straight record quarters. PEG 0.55 — deeply undervalued. Rev +41% YoY.</td>
+            </tr>
+            <tr>
+              <td><div class="ticker-cell">IONQ</div><div style="font-size:10px;color:var(--text-dim)">IonQ</div></td>
+              <td class="price-cell" id="val-ionq-price">$33.05</td>
+              <td class="target-cell">$63.33 avg</td>
+              <td><span class="updown up">+92%</span></td>
+              <td><span class="signal-badge sb-hold">HOLD</span></td>
+              <td style="font-size:10px;color:var(--text-secondary);max-width:140px;">Down 47% on dilution from $2B raise. Rev +287% YoY. Wedbush $75 target.</td>
+            </tr>
+            <tr>
+              <td><div class="ticker-cell">PPE</div><div style="font-size:10px;color:var(--text-dim)">Purple Group</div></td>
+              <td class="price-cell">R1.79</td>
+              <td class="target-cell">—</td>
+              <td><span class="updown up">Growth</span></td>
+              <td><span class="signal-badge sb-buy">BUY</span></td>
+              <td style="font-size:10px;color:var(--text-secondary);max-width:140px;">Profit +34.8%. Costs +0.5% vs Rev +8.8%. Philippines expansion with GCash.</td>
+            </tr>
+            <tr>
+              <td><div class="ticker-cell">S&P500</div><div style="font-size:10px;color:var(--text-dim)">Satrix ETF</div></td>
+              <td class="price-cell">R137.21</td>
+              <td class="target-cell">Long term</td>
+              <td><span class="updown up">Compound</span></td>
+              <td><span class="signal-badge sb-hold">HOLD</span></td>
+              <td style="font-size:10px;color:var(--text-secondary);max-width:140px;">Core foundation. +13.73% all time. Hold and compound. No action needed.</td>
+            </tr>
+            <tr>
+              <td><div class="ticker-cell">NDX</div><div style="font-size:10px;color:var(--text-dim)">Satrix Nasdaq</div></td>
+              <td class="price-cell">R280.37</td>
+              <td class="target-cell">Long term</td>
+              <td><span class="updown">Breakeven</span></td>
+              <td><span class="signal-badge sb-hold">HOLD</span></td>
+              <td style="font-size:10px;color:var(--text-secondary);max-width:140px;">Valuation compression in megacap tech — not fundamental. MSFT earnings today a catalyst.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="tab-tech" class="tab-content" style="padding:14px 16px;">
+        <div style="margin-bottom:12px;font-size:11px;color:var(--text-secondary);">Technical indicators based on current market data. RSI: &lt;30 oversold (buy zone), &gt;70 overbought (caution).</div>
+        <div class="tech-grid">
+          <div class="tech-item">
+            <div class="ti-label">MSFT — RSI</div>
+            <div class="ti-value neutral-text" id="tech-msft-rsi">Loading...</div>
+            <div class="ti-signal neutral-text">Neutral range</div>
+            <div class="ti-note">Earnings today catalyst. Watch post-market reaction.</div>
+          </div>
+          <div class="tech-item">
+            <div class="ti-label">PLTR — RSI</div>
+            <div class="ti-value" id="tech-pltr-rsi" style="color:var(--loss)">Loading...</div>
+            <div class="ti-signal loss">Approaching overbought</div>
+            <div class="ti-note">Strong momentum. Consider partial profit above $210.</div>
+          </div>
+          <div class="tech-item">
+            <div class="ti-label">TSM — RSI</div>
+            <div class="ti-value gain" id="tech-tsm-rsi">Loading...</div>
+            <div class="ti-signal gain">Neutral — attractive entry</div>
+            <div class="ti-note">Breakeven masks record fundamentals. Coiled spring.</div>
+          </div>
+          <div class="tech-item">
+            <div class="ti-label">IONQ — RSI</div>
+            <div class="ti-value" id="tech-ionq-rsi" style="color:var(--accent-blue)">Loading...</div>
+            <div class="ti-signal" style="color:var(--accent-blue)">Oversold — watch earnings</div>
+            <div class="ti-note">Down 47%. Q3 earnings could be inflection point.</div>
+          </div>
+          <div class="tech-item">
+            <div class="ti-label">MSFT — vs 200MA</div>
+            <div class="ti-value gain" id="tech-msft-ma">Loading...</div>
+            <div class="ti-signal gain">Above 200-day MA</div>
+            <div class="ti-note">Sustained uptrend intact. Bullish structure.</div>
+          </div>
+          <div class="tech-item">
+            <div class="ti-label">TSM — vs 200MA</div>
+            <div class="ti-value" id="tech-tsm-ma" style="color:var(--neutral)">Loading...</div>
+            <div class="ti-signal" style="color:var(--neutral)">Testing key level</div>
+            <div class="ti-note">$412 is critical support. Holding well above.</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-alloc" class="tab-content" style="padding:14px 16px;">
+        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px;">Portfolio allocation by position size (total R5,934)</div>
+        <div class="alloc-grid">
+          <div class="alloc-bar-wrap">
+            <div class="alloc-bar-outer"><div class="alloc-bar-inner" style="height:100%;background:linear-gradient(180deg,#3B82F6,#1d4ed8);"></div></div>
+            <div class="alloc-label">S&P 500</div>
+            <div class="alloc-pct">38.2%</div>
+          </div>
+          <div class="alloc-bar-wrap">
+            <div class="alloc-bar-outer"><div class="alloc-bar-inner" style="height:28%;background:linear-gradient(180deg,#10B981,#065f46);"></div></div>
+            <div class="alloc-label">Purple Grp</div>
+            <div class="alloc-pct">18.2%</div>
+          </div>
+          <div class="alloc-bar-wrap">
+            <div class="alloc-bar-outer"><div class="alloc-bar-inner" style="height:18%;background:linear-gradient(180deg,#8B5CF6,#4c1d95);"></div></div>
+            <div class="alloc-label">Nasdaq</div>
+            <div class="alloc-pct">8.4%</div>
+          </div>
+          <div class="alloc-bar-wrap">
+            <div class="alloc-bar-outer"><div class="alloc-bar-inner" style="height:17%;background:linear-gradient(180deg,#60A5FA,#2563eb);"></div></div>
+            <div class="alloc-label">MSFT</div>
+            <div class="alloc-pct">7.8%</div>
+          </div>
+          <div class="alloc-bar-wrap">
+            <div class="alloc-bar-outer"><div class="alloc-bar-inner" style="height:18%;background:linear-gradient(180deg,#34D399,#064e3b);"></div></div>
+            <div class="alloc-label">Palantir</div>
+            <div class="alloc-pct">9.1%</div>
+          </div>
+          <div class="alloc-bar-wrap">
+            <div class="alloc-bar-outer"><div class="alloc-bar-inner" style="height:14%;background:linear-gradient(180deg,#FCD34D,#78350f);"></div></div>
+            <div class="alloc-label">TSMC</div>
+            <div class="alloc-pct">5.5%</div>
+          </div>
+          <div class="alloc-bar-wrap">
+            <div class="alloc-bar-outer"><div class="alloc-bar-inner" style="height:8%;background:linear-gradient(180deg,#FCA5A5,#7f1d1d);"></div></div>
+            <div class="alloc-label">IonQ</div>
+            <div class="alloc-pct">2.8%</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;">
+          <div class="tech-item">
+            <div class="ti-label">Risk Profile</div>
+            <div class="ti-value neutral-text">Moderate-High</div>
+            <div class="ti-note">Balanced between stable ETFs and growth stocks</div>
+          </div>
+          <div class="tech-item">
+            <div class="ti-label">Geo Exposure</div>
+            <div class="ti-value" style="color:var(--accent-blue)">82% US</div>
+            <div class="ti-note">18% SA. Consider geographic diversification</div>
+          </div>
+          <div class="tech-item">
+            <div class="ti-label">Sector Conc.</div>
+            <div class="ti-value loss">~75% Tech</div>
+            <div class="ti-note">High AI/tech correlation — monitor for rotation</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTOR HEATMAP -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Sector Intelligence — Live Momentum</span>
+        <span style="font-size:10px;color:var(--text-dim)">Oct 28, 2026</span>
+      </div>
+      <div class="card-body">
+        <div class="heatmap-grid">
+          <div class="heat-cell heat-strong-buy">
+            <div class="hc-sector">AI & Software</div>
+            <div class="hc-change">+2.8%</div>
+            <div class="hc-signal">STRONG BUY ↑</div>
+          </div>
+          <div class="heat-cell heat-strong-buy">
+            <div class="hc-sector">Semiconductors</div>
+            <div class="hc-change">+3.1%</div>
+            <div class="hc-signal">STRONG BUY ↑</div>
+          </div>
+          <div class="heat-cell heat-buy">
+            <div class="hc-sector">Cloud & SaaS</div>
+            <div class="hc-change">+1.9%</div>
+            <div class="hc-signal">BUY ↑</div>
+          </div>
+          <div class="heat-cell heat-buy">
+            <div class="hc-sector">Defence & Space</div>
+            <div class="hc-change">+1.4%</div>
+            <div class="hc-signal">BUY ↑</div>
+          </div>
+          <div class="heat-cell heat-hold">
+            <div class="hc-sector">Healthcare</div>
+            <div class="hc-change">+0.3%</div>
+            <div class="hc-signal">HOLD →</div>
+          </div>
+          <div class="heat-cell heat-hold">
+            <div class="hc-sector">Financials</div>
+            <div class="hc-change">+0.6%</div>
+            <div class="hc-signal">HOLD →</div>
+          </div>
+          <div class="heat-cell heat-buy">
+            <div class="hc-sector">Industrials</div>
+            <div class="hc-change">+1.1%</div>
+            <div class="hc-signal">BUY ↑</div>
+          </div>
+          <div class="heat-cell heat-hold">
+            <div class="hc-sector">Consumer Disc.</div>
+            <div class="hc-change">-0.2%</div>
+            <div class="hc-signal">HOLD →</div>
+          </div>
+          <div class="heat-cell heat-reduce">
+            <div class="hc-sector">Real Estate</div>
+            <div class="hc-change">-0.8%</div>
+            <div class="hc-signal">REDUCE ↓</div>
+          </div>
+          <div class="heat-cell heat-hold">
+            <div class="hc-sector">Energy</div>
+            <div class="hc-change">+0.4%</div>
+            <div class="hc-signal">HOLD →</div>
+          </div>
+          <div class="heat-cell heat-buy">
+            <div class="hc-sector">Quantum Tech</div>
+            <div class="hc-change">+1.6%</div>
+            <div class="hc-signal">BUY ↑</div>
+          </div>
+          <div class="heat-cell heat-hold">
+            <div class="hc-sector">Consumer Staples</div>
+            <div class="hc-change">+0.1%</div>
+            <div class="hc-signal">HOLD →</div>
+          </div>
+          <div class="heat-cell heat-reduce">
+            <div class="hc-sector">Materials</div>
+            <div class="hc-change">-0.5%</div>
+            <div class="hc-signal">REDUCE ↓</div>
+          </div>
+          <div class="heat-cell heat-hold">
+            <div class="hc-sector">Communications</div>
+            <div class="hc-change">+0.7%</div>
+            <div class="hc-signal">HOLD →</div>
+          </div>
+          <div class="heat-cell heat-buy">
+            <div class="hc-sector">Int'l Markets</div>
+            <div class="hc-change">+1.2%</div>
+            <div class="hc-signal">BUY ↑</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:10px;color:var(--text-dim);">⚡ AI & Semiconductors leading today driven by Anthropic IPO filing. Your MSFT, PLTR, TSM all positioned in top-performing sectors.</div>
+      </div>
+    </div>
+
+    <!-- WATCHLIST + NEWS side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+      <!-- WATCHLIST -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Watchlist</span>
+          <span class="section-badge">Priority targets</span>
+        </div>
+        <div class="card-body" style="padding:10px 14px;">
+          <table class="watchlist-table">
+            <thead><tr><th>Stock</th><th>Price</th><th>RSI</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><div class="wl-name">Nvidia</div><div class="wl-ticker">NVDA</div></td>
+                <td id="wl-nvda">Loading...</td>
+                <td><div class="rsi-label gain" id="rsi-nvda">—</div></td>
+                <td><span class="signal-badge sb-strong-buy">STRONG BUY</span></td>
+              </tr>
+              <tr>
+                <td><div class="wl-name">Broadcom</div><div class="wl-ticker">AVGO</div></td>
+                <td id="wl-avgo">Loading...</td>
+                <td><div class="rsi-label gain" id="rsi-avgo">—</div></td>
+                <td><span class="signal-badge sb-buy">BUY</span></td>
+              </tr>
+              <tr>
+                <td><div class="wl-name">Alphabet</div><div class="wl-ticker">GOOGL</div></td>
+                <td id="wl-googl">Loading...</td>
+                <td><div class="rsi-label neutral-text" id="rsi-googl">—</div></td>
+                <td><span class="signal-badge sb-buy">BUY</span></td>
+              </tr>
+              <tr>
+                <td><div class="wl-name">Meta</div><div class="wl-ticker">META</div></td>
+                <td id="wl-meta">Loading...</td>
+                <td><div class="rsi-label neutral-text" id="rsi-meta">—</div></td>
+                <td><span class="signal-badge sb-buy">BUY</span></td>
+              </tr>
+              <tr>
+                <td><div class="wl-name">AMD</div><div class="wl-ticker">AMD</div></td>
+                <td id="wl-amd">Loading...</td>
+                <td><div class="rsi-label gain" id="rsi-amd">—</div></td>
+                <td><span class="signal-badge sb-buy">BUY</span></td>
+              </tr>
+              <tr>
+                <td><div class="wl-name">Micron</div><div class="wl-ticker">MU</div></td>
+                <td id="wl-mu">Loading...</td>
+                <td><div class="rsi-label neutral-text" id="rsi-mu">—</div></td>
+                <td><span class="signal-badge sb-hold">HOLD</span></td>
+              </tr>
+              <tr>
+                <td><div class="wl-name">ARM Holdings</div><div class="wl-ticker">ARM</div></td>
+                <td id="wl-arm">Loading...</td>
+                <td><div class="rsi-label" id="rsi-arm" style="color:var(--loss)">—</div></td>
+                <td><span class="signal-badge sb-hold">HOLD</span></td>
+              </tr>
+              <tr>
+                <td><div class="wl-name">Marvell Tech</div><div class="wl-ticker">MRVL</div></td>
+                <td id="wl-mrvl">Loading...</td>
+                <td><div class="rsi-label gain" id="rsi-mrvl">—</div></td>
+                <td><span class="signal-badge sb-buy">BUY</span></td>
+              </tr>
+              <tr>
+                <td><div class="wl-name">Amazon</div><div class="wl-ticker">AMZN</div></td>
+                <td id="wl-amzn">Loading...</td>
+                <td><div class="rsi-label neutral-text" id="rsi-amzn">—</div></td>
+                <td><span class="signal-badge sb-hold">HOLD</span></td>
+              </tr>
+              <tr>
+                <td><div class="wl-name">Rigetti</div><div class="wl-ticker">RGTI</div></td>
+                <td id="wl-rgti">Loading...</td>
+                <td><div class="rsi-label" id="rsi-rgti" style="color:var(--neutral)">—</div></td>
+                <td><span class="signal-badge sb-hold">WATCH</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- EVENTS CALENDAR -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Upcoming Catalysts</span>
+          <span class="section-badge">Your portfolio</span>
+        </div>
+        <div class="card-body" style="padding:10px 14px;">
+          <div class="event-item">
+            <div class="event-days"><div class="days-num gain">TODAY</div><div class="days-label">urgent</div></div>
+            <div class="event-info"><div class="ev-name">Microsoft Q1 FY27 Earnings</div><div class="ev-date">Oct 28 · After market close · Watch Azure growth %</div></div>
+            <span class="event-type et-earnings">EARNINGS</span>
+          </div>
+          <div class="event-item">
+            <div class="event-days"><div class="days-num neutral-text">~5d</div><div class="days-label">days</div></div>
+            <div class="event-info"><div class="ev-name">Palantir Q3 2026 Earnings</div><div class="ev-date">Early Nov · Key: US commercial revenue growth</div></div>
+            <span class="event-type et-earnings">EARNINGS</span>
+          </div>
+          <div class="event-item">
+            <div class="event-days"><div class="days-num neutral-text">~7d</div><div class="days-label">days</div></div>
+            <div class="event-info"><div class="ev-name">IonQ Q3 2026 Earnings</div><div class="ev-date">Early Nov · Key: Revenue vs $450-460M guidance</div></div>
+            <span class="event-type et-earnings">EARNINGS</span>
+          </div>
+          <div class="event-item">
+            <div class="event-days"><div class="days-num" style="color:var(--accent-blue)">~14d</div><div class="days-label">days</div></div>
+            <div class="event-info"><div class="ev-name">Alphabet Q3 Earnings</div><div class="ev-date">Watchlist · Key: AI Search monetisation, Cloud</div></div>
+            <span class="event-type et-earnings">WATCHLIST</span>
+          </div>
+          <div class="event-item">
+            <div class="event-days"><div class="days-num" style="color:var(--text-dim)">Nov</div><div class="days-label">month</div></div>
+            <div class="event-info"><div class="ev-name">FOMC Fed Meeting</div><div class="ev-date">Nov 6-7 · Rate decision — impacts all equities</div></div>
+            <span class="event-type et-fed">FED</span>
+          </div>
+          <div class="event-item">
+            <div class="event-days"><div class="days-num" style="color:var(--text-dim)">Nov</div><div class="days-label">month</div></div>
+            <div class="event-info"><div class="ev-name">US CPI Inflation Data</div><div class="ev-date">Mid-Nov · Impacts Fed trajectory and tech valuations</div></div>
+            <span class="event-type et-macro">MACRO</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEWS FEED -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Market Intelligence Feed</span>
+        <span style="font-size:10px;color:var(--text-dim)">Portfolio & Watchlist filtered</span>
+      </div>
+      <div class="card-body" id="news-feed">
+        <div class="news-item">
+          <div class="news-top">
+            <div class="news-headline">Microsoft earnings preview: Azure guidance of 45% growth is the pivotal number — Wall Street consensus targets $603</div>
+            <div class="news-time">Today</div>
+          </div>
+          <div class="news-meta"><span class="news-tag nt-msft">MSFT</span><span style="font-size:10px;color:var(--text-dim)">Investing.com</span></div>
+        </div>
+        <div class="news-item">
+          <div class="news-top">
+            <div class="news-headline">Semiconductor sector rallies 3% as Anthropic files for IPO — TSMC, Nvidia and Broadcom among the biggest beneficiaries</div>
+            <div class="news-time">Yesterday</div>
+          </div>
+          <div class="news-meta"><span class="news-tag nt-msft">TSM</span><span class="news-tag" style="background:rgba(167,139,250,0.15);color:#A78BFA;font-size:9px;padding:1px 6px;border-radius:3px;font-weight:600;">NVDA</span><span style="font-size:10px;color:var(--text-dim)">CNBC</span></div>
+        </div>
+        <div class="news-item">
+          <div class="news-top">
+            <div class="news-headline">Palantir approaches $200 — Goldman Sachs Buy rating with $230 target as US commercial revenue surges 124% in 2026</div>
+            <div class="news-time">Oct 26</div>
+          </div>
+          <div class="news-meta"><span class="news-tag nt-pltr">PLTR</span><span style="font-size:10px;color:var(--text-dim)">Goldman Sachs / BeInsure</span></div>
+        </div>
+        <div class="news-item">
+          <div class="news-top">
+            <div class="news-headline">TSMC posts sixth consecutive record quarter — Q3 revenue +41% YoY but stock slips on margin compression fears from 2nm ramp</div>
+            <div class="news-time">Oct 17</div>
+          </div>
+          <div class="news-meta"><span class="news-tag nt-tsm">TSM</span><span style="font-size:10px;color:var(--text-dim)">Motley Fool</span></div>
+        </div>
+        <div class="news-item">
+          <div class="news-top">
+            <div class="news-headline">IonQ raises full-year revenue outlook to $450-460M — up from $280-290M — after $2B equity raise rattles investors with dilution concerns</div>
+            <div class="news-time">Oct 20</div>
+          </div>
+          <div class="news-meta"><span class="news-tag nt-ionq">IONQ</span><span style="font-size:10px;color:var(--text-dim)">Ad-Hoc News</span></div>
+        </div>
+        <div class="news-item">
+          <div class="news-top">
+            <div class="news-headline">Purple Group interim results: profit jumps 34.8% as EasyEquities hits 1.24M active clients and R94.9B in assets under administration</div>
+            <div class="news-time">Apr 8</div>
+          </div>
+          <div class="news-meta"><span class="news-tag" style="background:rgba(16,185,129,0.15);color:#34D399;font-size:9px;padding:1px 6px;border-radius:3px;font-weight:600;">PPE</span><span style="font-size:10px;color:var(--text-dim)">EWN</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:10px;color:var(--text-dim);padding:8px;">
+      Market Intelligence Dashboard · Personal Use Only · Not Financial Advice · Data via Yahoo Finance API · Refresh for live prices
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Tab switching
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const names = ['val','tech','alloc'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// Format price change
+function fmtChange(val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return { text: '—', cls: '' };
+  return { text: (v >= 0 ? '+' : '') + v.toFixed(2) + '%', cls: v >= 0 ? 'gain' : 'loss' };
+}
+
+// Fetch stock quote via Yahoo Finance (allorigins proxy)
+async function fetchQuote(symbol) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+    const data = await res.json();
+    const parsed = JSON.parse(data.contents);
+    const meta = parsed.chart.result[0].meta;
+    const price = meta.regularMarketPrice;
+    const prev = meta.chartPreviousClose || meta.previousClose;
+    const change = prev ? ((price - prev) / prev) * 100 : 0;
+    return { price, change, prev };
+  } catch(e) {
+    return null;
+  }
+}
+
+// RSI calculation helper
+function calcRSI(prices, period=14) {
+  if (prices.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const diff = prices[i] - prices[i-1];
+    if (diff > 0) gains += diff; else losses -= diff;
+  }
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+  for (let i = period + 1; i < prices.length; i++) {
+    const diff = prices[i] - prices[i-1];
+    const g = diff > 0 ? diff : 0;
+    const l = diff < 0 ? -diff : 0;
+    avgGain = (avgGain * (period-1) + g) / period;
+    avgLoss = (avgLoss * (period-1) + l) / period;
+  }
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return Math.round(100 - (100 / (1 + rs)));
+}
+
+async function fetchRSI(symbol) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=3mo`;
+    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+    const data = await res.json();
+    const parsed = JSON.parse(data.contents);
+    const closes = parsed.chart.result[0].indicators.quote[0].close.filter(v => v !== null);
+    return calcRSI(closes);
+  } catch(e) { return null; }
+}
+
+function setEl(id, text, cls='') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  if (cls) el.className = (el.className.replace(/gain|loss|neutral-text/g,'').trim() + ' ' + cls).trim();
+}
+
+async function refreshAll() {
+  const now = new Date();
+  setEl('last-updated', 'Updating... ' + now.toLocaleTimeString('en-ZA'));
+
+  // Portfolio stocks
+  const stocks = [
+    { sym: 'MSFT', priceId: 'msft-price', dayId: 'msft-day', valId: 'val-msft-price', techRsiId: 'tech-msft-rsi', techMaId: 'tech-msft-ma' },
+    { sym: 'PLTR', priceId: 'pltr-price', dayId: 'pltr-day', valId: 'val-pltr-price', techRsiId: 'tech-pltr-rsi' },
+    { sym: 'TSM',  priceId: 'tsm-price',  dayId: 'tsm-day',  valId: 'val-tsm-price',  techRsiId: 'tech-tsm-rsi', techMaId: 'tech-tsm-ma' },
+    { sym: 'IONQ', priceId: 'ionq-price', dayId: 'ionq-day', valId: 'val-ionq-price', techRsiId: 'tech-ionq-rsi' },
+  ];
+
+  for (const s of stocks) {
+    const q = await fetchQuote(s.sym);
+    if (q) {
+      const fmt = fmtChange(q.change);
+      setEl(s.priceId, '$' + q.price.toFixed(2), q.change >= 0 ? 'gain' : 'loss');
+      setEl(s.dayId, fmt.text, fmt.cls);
+      if (s.valId) setEl(s.valId, '$' + q.price.toFixed(2));
+    } else {
+      setEl(s.priceId, 'N/A'); setEl(s.dayId, '—');
+    }
+
+    const rsi = await fetchRSI(s.sym);
+    if (rsi && s.techRsiId) {
+      const rsiCls = rsi < 35 ? 'gain' : rsi > 65 ? 'loss' : 'neutral-text';
+      setEl(s.techRsiId, rsi.toString(), rsiCls);
+    }
+  }
+
+  // Index benchmarks
+  const benchmarks = [
+    { sym: 'SPY', priceId: 'spy-price', chgId: 'spy-change' },
+    { sym: 'QQQ', priceId: 'qqq-price', chgId: 'qqq-change' },
+  ];
+  for (const b of benchmarks) {
+    const q = await fetchQuote(b.sym);
+    if (q) {
+      const fmt = fmtChange(q.change);
+      setEl(b.priceId, '$' + q.price.toFixed(2));
+      setEl(b.chgId, fmt.text, fmt.cls);
+    }
+  }
+
+  // USD/ZAR
+  const zarq = await fetchQuote('USDZAR=X');
+  if (zarq) {
+    setEl('usdzar-rate', 'R' + zarq.price.toFixed(2));
+    const fmtz = fmtChange(zarq.change);
+    setEl('usdzar-change', fmtz.text, fmtz.cls);
+    const usdZarRate = zarq.price;
+    const usdVal = 125.74;
+    setEl('usd-in-zar', 'R' + (usdVal * usdZarRate).toFixed(2));
+  }
+
+  // Watchlist
+  const wl = [
+    { sym: 'NVDA', priceId: 'wl-nvda', rsiId: 'rsi-nvda' },
+    { sym: 'AVGO', priceId: 'wl-avgo', rsiId: 'rsi-avgo' },
+    { sym: 'GOOGL', priceId: 'wl-googl', rsiId: 'rsi-googl' },
+    { sym: 'META', priceId: 'wl-meta', rsiId: 'rsi-meta' },
+    { sym: 'AMD',  priceId: 'wl-amd',  rsiId: 'rsi-amd'  },
+    { sym: 'MU',   priceId: 'wl-mu',   rsiId: 'rsi-mu'   },
+    { sym: 'ARM',  priceId: 'wl-arm',  rsiId: 'rsi-arm'  },
+    { sym: 'MRVL', priceId: 'wl-mrvl', rsiId: 'rsi-mrvl' },
+    { sym: 'AMZN', priceId: 'wl-amzn', rsiId: 'rsi-amzn' },
+    { sym: 'RGTI', priceId: 'wl-rgti', rsiId: 'rsi-rgti' },
+  ];
+  for (const w of wl) {
+    const q = await fetchQuote(w.sym);
+    if (q) {
+      const fmt = fmtChange(q.change);
+      setEl(w.priceId, '$' + q.price.toFixed(2) + ' ' + fmt.text, q.change >= 0 ? 'gain' : 'loss');
+    }
+    const rsi = await fetchRSI(w.sym);
+    if (rsi) {
+      const rsiCls = rsi < 35 ? 'gain' : rsi > 65 ? 'loss' : 'neutral-text';
+      setEl(w.rsiId, 'RSI ' + rsi, rsiCls);
+    }
+  }
+
+  setEl('last-updated', 'Updated: ' + new Date().toLocaleTimeString('en-ZA'));
+}
+
+// Detail panel (placeholder — link to analyst chat)
+function showDetail(ticker) {
+  alert(`📊 ${ticker} — For full fundamental + technical analysis with buy/sell reasoning, take this ticker to your Analyst Project and type:\n\n"Analyse ${ticker} — full breakdown"\n\nThis links your dashboard data directly to your analyst brain.`);
+}
+
+// Auto-refresh on load
+window.onload = () => refreshAll();
+</script>
+</body>
+</html>
